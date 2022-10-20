@@ -5,18 +5,18 @@ import numpy as np
 '''
 THERMODYNAMIC PARAMETERS INITIALIZATION
 '''
-aCp=0.44;
-bCp=-0.26;
-adeltaH=-8.44;
-bdeltaH=31.4;
-OHCp=0.17;
-TsPolar=335.15;
-TsApolar=385.15;
-dSbb_length_corr=-0.12;
-exposed_criteria=0.1;
-W_Sconf=1.0;
-Current_Temp = 298.15;
-ASA_exposed_amide=7.5;
+aCp=0.44
+bCp=-0.26
+adeltaH=-8.44
+bdeltaH=31.4
+OHCp=0.17
+TsPolar=335.15
+TsApolar=385.15
+dSbb_length_corr=-0.12
+exposed_criteria=0.1
+W_Sconf=1.0
+Current_Temp = 298.15
+ASA_exposed_amide=7.5
 
 
 def partition_generator(seq_length, window_size, Minimum_Window_Size):
@@ -106,6 +106,13 @@ def state_generator(partitionSchemes):
                 tmp.append(list(item))
         partitionStates[partitionId] = tmp
     return partitionStates
+
+
+def getAAConstants():
+    aaConstants = pd.read_csv("aaConstants.csv")
+    aaConstants = aaConstants.iloc[:, 1:]
+    aaConstants = aaConstants.set_index('aa')
+    return aaConstants
 
 
 def Native_State(partitionId, partitionSchemes, partitionStates, df):
