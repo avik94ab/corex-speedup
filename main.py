@@ -117,6 +117,7 @@ def getAAConstants():
 
 def Native_State(partitionId, partitionSchemes, partitionStates, df):
 
+    aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
     ASA_N_Polar = 0.0
     ASA_N_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
@@ -141,6 +142,10 @@ def Native_State(partitionId, partitionSchemes, partitionStates, df):
                 if element not in ["N", "CA", "C", "O"]:
                     ASA_side_chain = ASA_side_chain + float(df.at[atom, 'Nat.Area'])
 
+            idx = df.index[df['ResNum'] == str(j)].tolist()[0]
+            aminoAcid = df.at[idx, 'ResName']
+            ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
+            ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
 
         print('------')
 
