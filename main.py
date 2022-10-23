@@ -115,7 +115,7 @@ def getAAConstants():
     return aaConstants
 
 
-def Native_State(partitionId, partitionSchemes, partitionStates, df):
+def Native_State(partitionId, partitionSchemes, df):
 
     aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
