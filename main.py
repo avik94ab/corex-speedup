@@ -69,7 +69,7 @@ def partition_generator(seq_length, window_size, Minimum_Window_Size):
     return partitionSchemes
 
 
-def readPDB(fileName):
+def readPDBinfo(fileName):
     f = open(fileName, "r")
     lines = f.readlines()
     fileSize = int(lines[0].strip()) #no. of rows in the file
@@ -116,7 +116,6 @@ def getAAConstants():
 
 
 def Native_State(partitionId, partitionSchemes, df):
-
     aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
     ASA_N_Polar = 0.0
@@ -156,16 +155,15 @@ def Native_State(partitionId, partitionSchemes, df):
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    return
+    return ASA_side_chain
 
 
-fileSize, seq_length, df = readPDB("1ediA.pdb.info")
+fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
 
 partitionSchemes = partition_generator(seq_length, 5, 4)
 
 partitionStates = state_generator(partitionSchemes)
-
-Native_State(1, partitionSchemes, partitionStates, df)
+print(Native_State(1, partitionSchemes, df))
 
 #print(df[['ResName', 'ResNum', 'AtomNum', 'AtomName', 'Nat.Area']])
 
