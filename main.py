@@ -68,6 +68,14 @@ def partition_generator(seq_length, window_size, Minimum_Window_Size):
     print("Total number of partially folded states: ", numEnsembles)
     return partitionSchemes
 
+def readPDBfile(fileName):
+    f = open(fileName, "r")
+    lines = f.readlines()
+    for line in lines:
+        if line[0:4] == "ATOM":
+            print(line)
+
+
 
 def readPDBinfo(fileName):
     f = open(fileName, "r")
@@ -181,3 +189,5 @@ for k,v in partitionStates.items():
 text_file = open("data.txt", "w")
 text_file.write(output)
 text_file.close()
+
+readPDBfile("6cne.pdb")
