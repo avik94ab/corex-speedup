@@ -72,8 +72,8 @@ def readPDBfile(fileName):
     f = open(fileName, "r")
     lines = f.readlines()
     for line in lines:
-        if line[0:4] == "ATOM":
-            print(line)
+        if line[0:4] == "ATOM" or line[0:6] == "HETATM":
+            print(line.split()[0], line.split()[2], line.split()[3])
 
 
 
