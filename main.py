@@ -94,17 +94,20 @@ def readPDBfile(fileName):
     atom_lst = []
     f = open(fileName, "r")
     lines = f.readlines()
-    k = 0
+    OTnum = 0
     for line in lines:
-        if line[0:4] == "ATOM" or line[0:6] == "HETATM":
+        if line[0:4] == "ATOM":
             atom_lst.append([line.split()[3], line.split()[5], line.split()[2],[line.split()[6], line.split()[7], line.split()[8]],
                              radius_table[line.split()[2]], math.pi * (radius_table[line.split()[2]]**2)])
+            if line.split()[2] == "OXT" or line.split()[2] == "OT":
+                OTnum += 1
+    print(OTnum)
     return atom_lst
 
 def readPDBinfo(fileName):
     f = open(fileName, "r")
     lines = f.readlines()
-    fileSize = int(lines[0].strip()) #no. of rows in the file
+    fileSize = int(lines[0].strip())  #no. of rows in the file
     headers = lines[1].split(' ')
     lines = lines[2:]
     for i in range(len(headers)):
@@ -147,10 +150,11 @@ def getAAConstants():
     return aaConstants
 
 
-def Native_State(partitionId, partitionSchemes, df):
+def Native_State(partitionId, partitionSchemes, df, OTnum):
     aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
     ASA_N_Polar = 0.0
+
     ASA_N_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
     ASA_N_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
     ASA_U_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
@@ -180,14 +184,14 @@ def Native_State(partitionId, partitionSchemes, df):
         print('------')
         #return two areas calculated for the partitionID and ASA-side-chain
 
-    OTnum = 0.0
+
     ASA_U_Polar_unit[0] = ASA_U_Polar_unit[0] + 45.0
     j = len(partitionSchemes[partitionId]) - 1
     print(j)
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    return ASA_side_chain
+    return ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit
 
 
 fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
@@ -195,13 +199,13 @@ fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
 partitionSchemes = partition_generator(seq_length, 5, 4)
 
 partitionStates = state_generator(partitionSchemes)
-print(Native_State(1, partitionSchemes, df))
+print(Native_State(1, partitionSchemes, df, 1))
 
 #print(df[['ResName', 'ResNum', 'AtomNum', 'AtomName', 'Nat.Area']])
 
 #print("Length of the sequence is: ", seq_length)
 
-print(df)
+
 
 output = ""
 for k,v in partitionStates.items():
@@ -214,4 +218,4 @@ text_file = open("data.txt", "w")
 text_file.write(output)
 text_file.close()
 
-print(readPDBfile("1ediA.pdb"))
+readPDBfile("1ediA.pdb")
