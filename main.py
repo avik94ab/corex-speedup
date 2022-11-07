@@ -182,16 +182,15 @@ def Native_State(partitionId, partitionSchemes, df, OTnum):
             ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
             ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
         print('------')
-        #return two areas calculated for the partitionID and ASA-side-chain
+
 
 
     ASA_U_Polar_unit[0] = ASA_U_Polar_unit[0] + 45.0
     j = len(partitionSchemes[partitionId]) - 1
-    print(j)
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    return ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit
+    return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit
 
 
 fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
