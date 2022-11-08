@@ -163,7 +163,6 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
 
     print(partitionSchemes[partitionId])
 
-
     for i in range(len(partitionSchemes[partitionId])):
         for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
             ASA_side_chain = 0.0
@@ -172,7 +171,7 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
             print(k)
             for atom in k:
                 element = df.at[atom, 'AtomName']
-                if element == 'C':
+                if element[0] == 'C':
                     ASA_N_Apolar_unit[i] += float(df.at[atom, 'Nat.Area'])
                     ASA_N_Apolar = ASA_N_Apolar + float(df.at[atom, 'Nat.Area'])
                 else:
@@ -190,20 +189,15 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
         print('------')
 
 
-
     ASA_U_Polar_unit[0] = ASA_U_Polar_unit[0] + 45.0
     j = len(partitionSchemes[partitionId]) - 1
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    sample = ""
+    '''
     for i in range(len(ASA_N_Apolar_unit)):
-        sample += str(ASA_N_Apolar_unit[i]) + " " +str(ASA_N_Polar_unit[i]) + " "+ str(ASA_U_Apolar_unit[i]) + " "+str(ASA_U_Polar_unit[i]) + "\n"
-
-    text_file = open("Native_STATE.txt", "w")
-    text_file.write(sample)
-    text_file.close()
-
+        print(ASA_N_Apolar_unit[i], ASA_N_Polar_unit[i], ASA_U_Apolar_unit[i], ASA_U_Polar_unit[i])
+    '''
     return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native
 
 
