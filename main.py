@@ -162,7 +162,7 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
     Fraction_exposed_Native = [0.0] * seq_length
 
     print(partitionSchemes[partitionId])
-
+    sample = ""
     for i in range(len(partitionSchemes[partitionId])):
         for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
             ASA_side_chain = 0.0
@@ -182,8 +182,10 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
 
             idx = df.index[df['ResNum'] == str(j)].tolist()[0]
             aminoAcid = df.at[idx, 'ResName']
+
             ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
             ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
+            #sample += "i = " + str(i) + " ASA_U_Apolar_unit[i] = "+ str(ASA_U_Apolar_unit[i]) + "  ASA_U_Polar_unit[i] = "+str(ASA_U_Polar_unit[i]) + "\n"
             Fraction_exposed_Native[j-1] = ASA_side_chain/aaConstants.at[aminoAcid, 'ASAsc']
 
         print('------')
@@ -194,10 +196,12 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    '''
     for i in range(len(ASA_N_Apolar_unit)):
-        print(ASA_N_Apolar_unit[i], ASA_N_Polar_unit[i], ASA_U_Apolar_unit[i], ASA_U_Polar_unit[i])
-    '''
+        sample += str(ASA_N_Apolar_unit[i]) + " "+ str(ASA_N_Polar_unit[i]) + " " + str(ASA_U_Apolar_unit[i]) + " " + str(ASA_U_Polar_unit[i]) + "\n"
+
+    print(sample)
+
+
     return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native
 
 
