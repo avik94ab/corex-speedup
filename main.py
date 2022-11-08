@@ -150,7 +150,7 @@ def getAAConstants():
     return aaConstants
 
 
-def Native_State(partitionId, partitionSchemes, df, OTnum):
+def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
     aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
     ASA_N_Polar = 0.0
@@ -159,6 +159,10 @@ def Native_State(partitionId, partitionSchemes, df, OTnum):
     ASA_N_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
     ASA_U_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
     ASA_U_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
+    Fraction_exposed_Native = [0.0] * seq_length
+
+    print(partitionSchemes[partitionId])
+
 
     for i in range(len(partitionSchemes[partitionId])):
         for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
@@ -181,6 +185,8 @@ def Native_State(partitionId, partitionSchemes, df, OTnum):
             aminoAcid = df.at[idx, 'ResName']
             ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
             ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
+            Fraction_exposed_Native[j-1] = ASA_side_chain/aaConstants.at[aminoAcid, 'ASAsc']
+
         print('------')
 
 
@@ -190,7 +196,16 @@ def Native_State(partitionId, partitionSchemes, df, OTnum):
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit
+    sample = ""
+    for i in range(len(ASA_N_Apolar_unit)):
+        sample += str(ASA_N_Apolar_unit[i]) + " " +str(ASA_N_Polar_unit[i]) + " "+ str(ASA_U_Apolar_unit[i]) + " "+str(ASA_U_Polar_unit[i]) + "\n"
+
+    text_file = open("Native_STATE.txt", "w")
+    text_file.write(sample)
+    text_file.close()
+
+    return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native
+
 
 
 fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
@@ -198,7 +213,11 @@ fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
 partitionSchemes = partition_generator(seq_length, 5, 4)
 
 partitionStates = state_generator(partitionSchemes)
-print(Native_State(1, partitionSchemes, df, 1))
+
+#TODO: Insert OTnum from readPDBfile
+_,_,_,_,_,_, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, 1, seq_length)
+
+
 
 #print(df[['ResName', 'ResNum', 'AtomNum', 'AtomName', 'Nat.Area']])
 
@@ -218,3 +237,6 @@ text_file.write(output)
 text_file.close()
 
 readPDBfile("1ediA.pdb")
+
+print(Fraction_exposed_Native)
+
