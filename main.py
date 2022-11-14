@@ -1,3 +1,6 @@
+# 0: Folded, 1: Unfolded
+#num_atoms is the no. of folded atoms
+
 import pandas as pd
 from itertools import product
 import math
@@ -101,7 +104,7 @@ def readPDBfile(fileName):
                              radius_table[line.split()[2]], math.pi * (radius_table[line.split()[2]]**2)])
             if line.split()[2] == "OXT" or line.split()[2] == "OT":
                 OTnum += 1
-    print(OTnum)
+
     return atom_lst
 
 def readPDBinfo(fileName):
@@ -185,24 +188,53 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
 
             ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
             ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
-            #sample += "i = " + str(i) + " ASA_U_Apolar_unit[i] = "+ str(ASA_U_Apolar_unit[i]) + "  ASA_U_Polar_unit[i] = "+str(ASA_U_Polar_unit[i]) + "\n"
             Fraction_exposed_Native[j-1] = ASA_side_chain/aaConstants.at[aminoAcid, 'ASAsc']
 
         print('------')
-
 
     ASA_U_Polar_unit[0] = ASA_U_Polar_unit[0] + 45.0
     j = len(partitionSchemes[partitionId]) - 1
     ASA_U_Apolar_unit[j] = ASA_U_Apolar_unit[j] + 30.0
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
-    for i in range(len(ASA_N_Apolar_unit)):
-        sample += str(ASA_N_Apolar_unit[i]) + " "+ str(ASA_N_Polar_unit[i]) + " " + str(ASA_U_Apolar_unit[i]) + " " + str(ASA_U_Polar_unit[i]) + "\n"
-
-    print(sample)
-
-
     return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native
+
+
+def load_atoms_range(partitionId, partitionSchemes, partitionStates, stateNum, df):
+    '''
+    @param partitionId
+    @param partitionSchemes
+    @param partitionStates
+    @param stateNum
+    @param df
+    '''
+
+
+    state = partitionStates[partitionId][stateNum]
+    num_atoms = 0
+    num_residues = 0
+
+    for i in range(len(partitionSchemes[partitionId])):
+        if state[i] == 0:
+            for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
+                num_residues += 1
+                k = df.index[df['ResNum'] == str(j)].tolist()
+                num_atoms += len(k)
+
+    return state, num_atoms, num_residues
+
+def calc_ASA_dSconf(df, num_atoms):
+    ASA_State_Apolar = 0.0
+    ASA_State_Polar = 0.0
+    Sum_U_Apolar = 0.0
+    Sum_U_Polar = 0.0
+
+    for i in range(num_atoms):
+        element = df.at[i, 'AtomName']
+        if element[0] == "C":
+            ASA_State_Apolar += ASA_State_Apolar
+        else:
+            ASA_State_Polar += ASA_State_Polar
 
 
 
@@ -236,5 +268,15 @@ text_file.close()
 
 readPDBfile("1ediA.pdb")
 
-print(Fraction_exposed_Native)
+output = ""
+for i in range(len(partitionStates[1])):
+    state, num_atoms, num_residues = load_atoms_range(1, partitionSchemes, partitionStates, i, df)
+    output += str(i) + " " + str(state) + " " + str(num_atoms) + " " + str(num_residues) + "\n"
+
+text_file = open("load_atoms_range.txt", "w")
+text_file.write(output)
+text_file.close()
+
+
+
 
