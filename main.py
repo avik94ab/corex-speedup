@@ -5,6 +5,9 @@ import pandas as pd
 from itertools import product
 import math
 import numpy as np
+from biotite.structure import sasa
+import biotite.structure.io as strucio
+
 '''
 THERMODYNAMIC PARAMETERS INITIALIZATION
 '''
@@ -105,7 +108,22 @@ def readPDBfile(fileName):
             if line.split()[2] == "OXT" or line.split()[2] == "OT":
                 OTnum += 1
 
-    return atom_lst
+    stack_from_pdb = strucio.load_structure(fileName)
+
+    atom_lst = []
+    vdw_radii = []
+    for idx in range(len(stack_from_pdb)):
+        vdw_radii.append(radius_table[stack_from_pdb.get_atom(idx).atom_name])
+    vdw_radii = np.array(vdw_radii)
+    atom_sasa_exp = sasa(stack_from_pdb, point_number=1000, vdw_radii=vdw_radii)
+
+    for idx in range(len(stack_from_pdb)):
+        atom_lst.append((stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
+
+    for entry in atom_lst:
+        print(entry[0], entry[1], entry[2])
+
+    return OTnum, atom_lst
 
 def readPDBinfo(fileName):
     f = open(fileName, "r")
@@ -208,8 +226,6 @@ def load_atoms_range(partitionId, partitionSchemes, partitionStates, stateNum, d
     @param stateNum
     @param df
     '''
-
-
     state = partitionStates[partitionId][stateNum]
     num_atoms = 0
     num_residues = 0
@@ -220,6 +236,7 @@ def load_atoms_range(partitionId, partitionSchemes, partitionStates, stateNum, d
                 num_residues += 1
                 k = df.index[df['ResNum'] == str(j)].tolist()
                 num_atoms += len(k)
+
 
     return state, num_atoms, num_residues
 
@@ -259,7 +276,7 @@ output = ""
 for k,v in partitionStates.items():
     num = 1
     for f in v:
-        output += str(k) + "  "+ str(num) + "  "+str(num) + "  " + str(round(np.sum(f)/len(f),4)) + "\n"
+        output += str(k) + "  "+ str(num) + "  "+str(num) + "  " + str(round(np.sum(f)/len(f), 4)) + "\n"
         num += 1
 
 text_file = open("data.txt", "w")
@@ -267,16 +284,5 @@ text_file.write(output)
 text_file.close()
 
 readPDBfile("1ediA.pdb")
-
-output = ""
-for i in range(len(partitionStates[1])):
-    state, num_atoms, num_residues = load_atoms_range(1, partitionSchemes, partitionStates, i, df)
-    output += str(i) + " " + str(state) + " " + str(num_atoms) + " " + str(num_residues) + "\n"
-
-text_file = open("load_atoms_range.txt", "w")
-text_file.write(output)
-text_file.close()
-
-
 
 

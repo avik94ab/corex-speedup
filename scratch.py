@@ -1,11 +1,5 @@
-import pandas as pd
-from Bio.PDB import PDBParser
-from Bio.PDB.SASA import ShrakeRupley
 from biotite.structure import sasa
 import biotite.structure.io as strucio
-from main import readPDBinfo
-import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
 import numpy as np
 
 
@@ -29,6 +23,7 @@ radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
 
 stack_from_pdb = strucio.load_structure("1ediA.pdb")
 
+print(stack_from_pdb.get_atom(0).coord)
 
 vdw_radii = []
 for idx in range(len(stack_from_pdb)):
@@ -38,26 +33,6 @@ vdw_radii = np.array(vdw_radii)
 atom_sasa_exp = sasa(stack_from_pdb, point_number = 1000, vdw_radii= vdw_radii)
 print("Done")
 
-'''
-fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
-atom_sasa_hilser = pd.to_numeric(df["Nat.Area"]).tolist()
-
-corr, _ = pearsonr(atom_sasa_hilser, atom_sasa_exp)
-
-plt.scatter(atom_sasa_hilser, atom_sasa_exp)
-plt.xlabel("Nat.Area(Hilser)")
-plt.ylabel("Nat.Area(Experimental)")
-plt.legend(title = "Pearson correlation = " + str(round(corr,4)))
-plt.savefig("sample.pdf")
-
-'''
-
-
-
-
-
-
-
-
-
+for i in range(len(stack_from_pdb)):
+    print(stack_from_pdb.get_atom(i).coord)
 
