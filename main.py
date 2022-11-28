@@ -97,6 +97,7 @@ def partition_generator(seq_length, window_size, Minimum_Window_Size):
     return partitionSchemes
 
 def readPDBfile(fileName):
+    '''
     atom_lst = []
     f = open(fileName, "r")
     lines = f.readlines()
@@ -107,9 +108,11 @@ def readPDBfile(fileName):
                              radius_table[line.split()[2]], math.pi * (radius_table[line.split()[2]]**2)])
             if line.split()[2] == "OXT" or line.split()[2] == "OT":
                 OTnum += 1
+    '''
+
+    OTnum = 0
 
     stack_from_pdb = strucio.load_structure(fileName)
-
     atom_lst = []
     vdw_radii = []
     for idx in range(len(stack_from_pdb)):
@@ -118,10 +121,9 @@ def readPDBfile(fileName):
     atom_sasa_exp = sasa(stack_from_pdb, point_number=1000, vdw_radii=vdw_radii)
 
     for idx in range(len(stack_from_pdb)):
-        atom_lst.append((stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
-
-    for entry in atom_lst:
-        print(entry[0], entry[1], entry[2])
+        atom_lst.append((stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name, stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
+        if stack_from_pdb.get_atom(idx).atom_name == "OXT" or stack_from_pdb.get_atom(idx).atom_name == "OT":
+            OTnum += 1
 
     return OTnum, atom_lst
 
@@ -169,6 +171,24 @@ def getAAConstants():
     aaConstants = aaConstants.iloc[:, 1:]
     aaConstants = aaConstants.set_index('aa')
     return aaConstants
+
+def Native_State_Demo(partitionId, partitionSchemes, atom_lst, OTnum, seq_length):
+    aaConstants = getAAConstants()
+    ASA_N_Apolar = 0.0
+    ASA_N_Polar = 0.0
+
+    ASA_N_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
+    ASA_N_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
+    ASA_U_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
+    ASA_U_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
+    Fraction_exposed_Native = [0.0] * seq_length
+
+    for i in range(len(partitionSchemes[partitionId])):
+        for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
+            ASA_side_chain = 0.0
+            print(j, end = ":")
+            pass
+
 
 
 def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
