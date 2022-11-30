@@ -1,5 +1,4 @@
 from biotite.structure import sasa
-import biotite.structure.io as strucio
 from biotite.structure.io.pdb import PDBFile
 import numpy as np
 
@@ -24,14 +23,18 @@ radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
 
 
 
-stack_from_pdb = strucio.load_structure("1ediA.pdb")
+file = PDBFile.read("6cne_stripped.pdb")
 
-print(type(stack_from_pdb))
+stack_from_pdb = file.get_structure(altloc='first').get_array(0)
 
-print(stack_from_pdb.get_atom(0).coord)
+'''
+for idx in range(len(stack_from_pdb)):
+    print(stack_from_pdb.get_atom(idx).atom_name, stack_from_pdb.get_atom(idx).res_name,idx)
+'''
 
 vdw_radii = []
 for idx in range(len(stack_from_pdb)):
+    print(stack_from_pdb.get_atom(idx).atom_name)
     vdw_radii.append(radius_table[stack_from_pdb.get_atom(idx).atom_name])
 vdw_radii = np.array(vdw_radii)
 
@@ -41,3 +44,4 @@ print("Done")
 for i in range(len(stack_from_pdb)):
     print(stack_from_pdb.get_atom(i).coord)
 
+print(atom_sasa_exp)

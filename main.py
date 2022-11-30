@@ -124,6 +124,7 @@ def readPDBfile(fileName):
         atom_lst.append((stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name, stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
         if stack_from_pdb.get_atom(idx).atom_name == "OXT" or stack_from_pdb.get_atom(idx).atom_name == "OT":
             OTnum += 1
+        print(atom_lst[idx])
 
     return OTnum, atom_lst
 
