@@ -2,6 +2,7 @@ from biotite.structure import sasa
 from biotite.structure.io.pdb import PDBFile
 import numpy as np
 from biopandas.pdb import PandasPdb
+import pandas as pd
 
 #dictionary of VDW radii
 radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
@@ -23,6 +24,7 @@ radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
                 }
 
 def stripPDB(fileName):
+
     ppdb = PandasPdb().read_pdb(fileName+'.pdb')
 
     # Remove all HETATM entries without MSE
@@ -73,15 +75,19 @@ def readPDB(fileName):
     OTnum = 0
 
     for idx in range(len(stack_from_pdb)):
-        atom_lst.append((stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name,
+        atom_lst.append((idx, stack_from_pdb.get_atom(idx).res_id, stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name,
                      stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
         if stack_from_pdb.get_atom(idx).atom_name == "OXT" or stack_from_pdb.get_atom(idx).atom_name == "OT":
             OTnum += 1
 
+    #atom_lst = pd.DataFrame.from_records(atom_lst,columns=['AtomNum', 'ResNum', 'ResName', 'AtomName', 'xyz', 'Radius', 'Nat.Area'])
+
     return OTnum, atom_lst
 
 
-OTnum, atom_lst = readPDB('6cne')
+OTnum, atom_lst = readPDB('1ediA')
+
+print(atom_lst)
 
 
 

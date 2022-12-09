@@ -7,6 +7,7 @@ import math
 import numpy as np
 from biotite.structure import sasa
 import biotite.structure.io as strucio
+import infoStable
 
 '''
 THERMODYNAMIC PARAMETERS INITIALIZATION
@@ -173,7 +174,9 @@ def getAAConstants():
     aaConstants = aaConstants.set_index('aa')
     return aaConstants
 
-def Native_State_Demo(partitionId, partitionSchemes, atom_lst, OTnum, seq_length):
+def Native_State(partitionId, partitionSchemes, df, OTnum):
+
+    seq_length = int(df['ResNum'].iloc[-1])
     aaConstants = getAAConstants()
     ASA_N_Apolar = 0.0
     ASA_N_Polar = 0.0
@@ -188,27 +191,6 @@ def Native_State_Demo(partitionId, partitionSchemes, atom_lst, OTnum, seq_length
         for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
             ASA_side_chain = 0.0
             print(j, end = ":")
-            pass
-
-
-
-def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
-    aaConstants = getAAConstants()
-    ASA_N_Apolar = 0.0
-    ASA_N_Polar = 0.0
-
-    ASA_N_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
-    ASA_N_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
-    ASA_U_Apolar_unit = [0.0] * len(partitionSchemes[partitionId])
-    ASA_U_Polar_unit = [0.0] * len(partitionSchemes[partitionId])
-    Fraction_exposed_Native = [0.0] * seq_length
-
-    print(partitionSchemes[partitionId])
-    sample = ""
-    for i in range(len(partitionSchemes[partitionId])):
-        for j in range(partitionSchemes[partitionId][i][0], partitionSchemes[partitionId][i][1] + 1):
-            ASA_side_chain = 0.0
-            print(j, end= ":")
             k = df.index[df['ResNum'] == str(j)].tolist()
             print(k)
             for atom in k:
@@ -227,7 +209,7 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
 
             ASA_U_Apolar_unit[i] = ASA_U_Apolar_unit[i] + aaConstants.at[aminoAcid, 'ASAexapol']
             ASA_U_Polar_unit[i] = ASA_U_Polar_unit[i] + aaConstants.at[aminoAcid, 'ASAexpol']
-            Fraction_exposed_Native[j-1] = ASA_side_chain/aaConstants.at[aminoAcid, 'ASAsc']
+            Fraction_exposed_Native[j - 1] = ASA_side_chain / aaConstants.at[aminoAcid, 'ASAsc']
 
         print('------')
 
@@ -237,6 +219,9 @@ def Native_State(partitionId, partitionSchemes, df, OTnum, seq_length):
     ASA_U_Polar_unit[j] = ASA_U_Polar_unit[j] + 30.0 * OTnum
 
     return ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native
+
+
+
 
 
 def load_atoms_range(partitionId, partitionSchemes, partitionStates, stateNum, df):
@@ -283,7 +268,16 @@ partitionSchemes = partition_generator(seq_length, 5, 4)
 partitionStates = state_generator(partitionSchemes)
 
 #TODO: Insert OTnum from readPDBfile
-_,_,_,_,_,_, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, 1, seq_length)
+
+OTnum, df = infoStable.trial()
+
+ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, OTnum)
+
+for i in range(len(ASA_N_Apolar_unit)):
+    print(ASA_N_Apolar_unit[i], ASA_N_Polar_unit[i], ASA_U_Apolar_unit[i], ASA_U_Polar_unit[i])
+
+
+
 
 
 
@@ -292,7 +286,7 @@ _,_,_,_,_,_, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, 1, 
 #print("Length of the sequence is: ", seq_length)
 
 
-
+'''
 output = ""
 for k,v in partitionStates.items():
     num = 1
@@ -306,4 +300,4 @@ text_file.close()
 
 readPDBfile("1ediA.pdb")
 
-
+'''
