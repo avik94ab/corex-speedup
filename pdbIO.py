@@ -126,7 +126,3 @@ def asa_calc(stack_from_pdb, folded_atoms):
     return area_folded
 
     #print("--- %s seconds ---" % (time.time() - start_time))
-if __name__ == "__main__":
-    seq_length, OTnum, pdb_lst, pdb_df, stack_from_pdb = readPDB('1e85')
-    df = seq_order(pdb_df)
-    print(df)
