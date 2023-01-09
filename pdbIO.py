@@ -1,8 +1,14 @@
+import itertools
+
 from biotite.structure import sasa
 from biotite.structure.io.pdb import PDBFile
 import numpy as np
 from biopandas.pdb import PandasPdb
 import pandas as pd
+from collections import OrderedDict
+import time
+from multiprocessing import Pool
+from numba import jit
 
 #dictionary of VDW radii
 radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
@@ -22,6 +28,11 @@ radius_table = {"N": 1.650, "CA": 1.870, "C": 1.760,
                 "OT1": 1.400, "OXT": 1.400, "OH": 1.400,
                 "SD": 1.850, "SG": 1.850, "P": 1.900
                 }
+
+
+
+
+
 
 def stripPDB(fileName):
 
@@ -47,10 +58,14 @@ def stripPDB(fileName):
     # Change remanining HETATM to ATOM
     ppdb.df['HETATM'].loc[ppdb.df['HETATM']['record_name'] == 'HETATM', 'record_name'] = 'ATOM'
 
+
     # for atoms with multiple occupancy, only consider the first density
     x = ppdb.df['ATOM']['occupancy'].tolist()
     y = ppdb.df['ATOM']['element_symbol'].tolist()
     z = ppdb.df['ATOM']['atom_name'].tolist()
+
+
+
 
     # Remove all ANISOU entries and save stripped down file
     ppdb.to_pdb(path=fileName + "_stripped.pdb",
@@ -63,7 +78,10 @@ def readPDB(fileName):
     stripPDB(fileName)
     file = PDBFile.read(fileName + "_stripped.pdb")
     stack_from_pdb = file.get_structure(altloc='first').get_array(0)
+
     vdw_radii = []
+
+
     for idx in range(len(stack_from_pdb)):
         vdw_radii.append(radius_table[stack_from_pdb.get_atom(idx).atom_name])
     vdw_radii = np.array(vdw_radii)
@@ -71,25 +89,44 @@ def readPDB(fileName):
     #calculate ASA using Shrake-Rupley algorithm
     atom_sasa_exp = sasa(stack_from_pdb, point_number=1000, vdw_radii=vdw_radii)
 
-    atom_lst = []
+
+    pdb_lst = []
     OTnum = 0
 
     for idx in range(len(stack_from_pdb)):
-        atom_lst.append((idx, stack_from_pdb.get_atom(idx).res_id, stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name,
+        pdb_lst.append((idx, stack_from_pdb.get_atom(idx).res_id, stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name,
                      stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
+
         if stack_from_pdb.get_atom(idx).atom_name == "OXT" or stack_from_pdb.get_atom(idx).atom_name == "OT":
             OTnum += 1
 
-    #atom_lst = pd.DataFrame.from_records(atom_lst,columns=['AtomNum', 'ResNum', 'ResName', 'AtomName', 'xyz', 'Radius', 'Nat.Area'])
+    pdb_df = pd.DataFrame.from_records(pdb_lst,columns=['AtomNum', 'ResNum', 'ResName', 'AtomName', 'xyz', 'Radius', 'Nat.Area'])
 
-    return OTnum, atom_lst
+    seq_length = int(pdb_df.loc[len(pdb_lst)-1]['ResNum'])
+
+    return seq_length, OTnum, pdb_lst, pdb_df, stack_from_pdb #change to also return seq_length
+
+def asa_calc(stack_from_pdb, folded_atoms):
+    stack_from_pdb = stack_from_pdb[folded_atoms]
+    vdw_radii = []
+    for idx in range(len(stack_from_pdb)):
+        vdw_radii.append(radius_table[stack_from_pdb.get_atom(idx).atom_name])
+    vdw_radii = np.array(vdw_radii)
+
+    if folded_atoms == []:
+        return {}
+
+    #calculate ASA using Shrake-Rupley algorithm
+    atom_sasa_exp = sasa(stack_from_pdb, point_number=1000, vdw_radii=vdw_radii)
 
 
-OTnum, atom_lst = readPDB('1ediA')
+    area_folded = {}
+    for i in range(len(atom_sasa_exp)):
+        area_folded[folded_atoms[i]] = atom_sasa_exp[i]
+    return area_folded
 
-print(atom_lst)
-
-
-
-
-
+    #print("--- %s seconds ---" % (time.time() - start_time))
+if __name__ == "__main__":
+    seq_length, OTnum, pdb_lst, pdb_df, stack_from_pdb = readPDB('1e85')
+    df = seq_order(pdb_df)
+    print(df)

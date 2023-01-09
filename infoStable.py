@@ -51,7 +51,7 @@ def readPDBinfo(fileName):
 def trial():
     fileSize, seq_length, df = readPDBinfo('6cne.pdb.info')
 
-    OTnum, atom_lst = pdbIO.readPDB('6cne')
+    seq_length, OTnum, atom_lst, atom_df, stack_from_pdb = pdbIO.readPDB('6cne')
 
     output = []
     idx = 0
@@ -60,11 +60,10 @@ def trial():
     for idx in range(fileSize):
         output.append((idx, df.iloc[idx]['ResNum'], df.iloc[idx]['ResName'], df.iloc[idx]['AtomName'], atom_lst[idx][4], radius_table[df.iloc[idx]['AtomName']], df.iloc[idx]['Nat.Area']))
 
-    for out in output:
-        print(out)
-
     df = pd.DataFrame.from_records(output, columns=['AtomNum', 'ResNum', 'ResName', 'AtomName', 'xyz', 'Radius', 'Nat.Area'])
 
-    return OTnum, df
+    seq_length = int(df['ResNum'].iloc[-1])
+
+    return seq_length, OTnum, df
 
 
