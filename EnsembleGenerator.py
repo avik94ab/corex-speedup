@@ -2,20 +2,12 @@
 #num_atoms is the no. of folded atoms
 import itertools
 import time, sys
-import random
-#for timing calculations
-
-#general purpose imports
 import pandas as pd
 from itertools import product
-import math
+
 import numpy as np
 from biotite.structure import sasa
 import biotite.structure.io as strucio
-import infoStable
-from numba import jit, njit
-
-#multiprocessing library
 from multiprocessing import Pool
 
 import pdbIO, SFR
@@ -32,7 +24,7 @@ TsPolar=335.15
 TsApolar=385.15
 dSbb_length_corr=-0.12
 exposed_criteria=0.1
-W_Sconf=0.5 # might be an user input later
+W_Sconf= 1.0 # might be an user input later
 Current_Temp = 298.15
 ASA_exposed_amide=7.5
 
@@ -109,63 +101,6 @@ def partition_generator(seq_length, window_size, Minimum_Window_Size):
     print("Total number of partially folded micro-states: ", numEnsembles)
     return partitionSchemes
 
-def readPDBfile(fileName):
-    '''
-    atom_lst = []
-    f = open(fileName, "r")
-    lines = f.readlines()
-    OTnum = 0
-    for line in lines:
-        if line[0:4] == "ATOM":
-            atom_lst.append([line.split()[3], line.split()[5], line.split()[2],[line.split()[6], line.split()[7], line.split()[8]],
-                             radius_table[line.split()[2]], math.pi * (radius_table[line.split()[2]]**2)])
-            if line.split()[2] == "OXT" or line.split()[2] == "OT":
-                OTnum += 1
-    '''
-
-    OTnum = 0
-
-    stack_from_pdb = strucio.load_structure(fileName)
-    atom_lst = []
-    vdw_radii = []
-    for idx in range(len(stack_from_pdb)):
-        vdw_radii.append(radius_table[stack_from_pdb.get_atom(idx).atom_name])
-    vdw_radii = np.array(vdw_radii)
-    atom_sasa_exp = sasa(stack_from_pdb, point_number=1000, vdw_radii=vdw_radii)
-
-    for idx in range(len(stack_from_pdb)):
-        atom_lst.append((stack_from_pdb.get_atom(idx).res_name, stack_from_pdb.get_atom(idx).atom_name, stack_from_pdb.get_atom(idx).coord, vdw_radii[idx], atom_sasa_exp[idx]))
-        if stack_from_pdb.get_atom(idx).atom_name == "OXT" or stack_from_pdb.get_atom(idx).atom_name == "OT":
-            OTnum += 1
-
-    return OTnum, atom_lst
-
-def readPDBinfo(fileName):
-    f = open(fileName, "r")
-    lines = f.readlines()
-    fileSize = int(lines[0].strip())  #no. of rows in the file
-    headers = lines[1].split(' ')
-    lines = lines[2:]
-    for i in range(len(headers)):
-        headers[i] = headers[i].strip("\n")
-
-    df = pd.DataFrame(columns=headers, index=list(range(fileSize)))
-
-    index = 0
-    for line in lines:
-        words = line.split(" ")
-        lst = []
-        for word in words:
-            if word != "" and word != "\n":
-                lst.append(word)
-        df.iloc[index] = lst[:-1]
-        index += 1
-
-    seq_length = int(df.loc[fileSize-1]['ResNum'])
-    print("Successfully read .pdb file of sequence length: ", seq_length, "\n")
-    print("Total no.of rows in the file: ", fileSize, "\n")
-
-    return fileSize, seq_length, df
 
 
 def state_generator(partitionSchemes):
@@ -377,9 +312,6 @@ def task(args):
     return partitionId, partition, Fraction_folded, y[0], y[1], y[2], stateFlag
 
 
-
-
-
 if __name__ == '__main__':
 
     #fileSize, seq_length, df = readPDBinfo("1ediA.pdb.info")
@@ -394,9 +326,12 @@ if __name__ == '__main__':
     window_size = int(input("Enter window size: "))
     Minimum_Window_Size = int(input("Enter minimum window size: "))
 
+    #pdbID = str(sys.argv[1])
+    #window_size = int(sys.argv[2])
+    #Minimum_Window_Size = int(sys.argv[3])
+
     seq_length, OTnum, pdb_lst, df, stack_from_pdb = pdbIO.readPDB(pdbID)
 
-    print(df)
 
     #print(df.index[df['ResNum'] == 56].tolist()[0])
 
@@ -408,6 +343,7 @@ if __name__ == '__main__':
 
 
     #TODO: Insert OTnum from readPDBfile
+
     output = []
 
 
@@ -428,7 +364,7 @@ if __name__ == '__main__':
         tmpStr.append(str(r[0]) +  ' '+ str(r[1]+1) + ' ' + str(r[1]+1) + ' ' +str(r[2]) + ' '+ str(r[3]) + ' ' + str(r[4]) + ' ' + str(r[5]) + ' '+ str(r[6]) + '\n')
     output = "".join(tmpStr)
 
-    text_file = open(pdbID+".pdb"+str(window_size)+"."+str(Minimum_Window_Size), "wt")
+    text_file = open(pdbID+".pdb."+str(window_size)+"."+str(Minimum_Window_Size), "wt")
     n = text_file.write(output)
     text_file.close()
 
@@ -436,21 +372,20 @@ if __name__ == '__main__':
 
     Partition_Function25 = 1.0
 
-    file = open(pdbID+".pdb"+str(window_size)+"."+str(Minimum_Window_Size), 'r')
-    ensemble = file.readlines()
-    file.close()
+    text_file = open(pdbID+".pdb."+str(window_size)+"."+str(Minimum_Window_Size), 'r')
+    ensemble = text_file.readlines()
+    text_file.close()
 
     ln_kf = SFR.Residue_Probabilities(ensemble, seq_length, partitionSchemes, partitionStates, Partition_Function25)
 
     corexOut = []
     for i in range(len(ln_kf)):
-        corexOut.append(((i+1), df.at[df.index[df['ResNum'] == (i+1)].tolist()[0], 'ResName'], ln_kf[i]))
-        print(i+1, ln_kf[i])
+        corexOut.append(str(i+1) + " " + str(ln_kf[i]) + "\n")
+    output = "".join(corexOut)
 
-
-
-
-
+    file = open(pdbID+".pdb."+str(window_size)+"."+str(Minimum_Window_Size)+".ThermoDescript", 'wt')
+    n = file.write(output)
+    file.close()
 
     '''
 

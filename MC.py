@@ -1,21 +1,14 @@
 # 0: Folded, 1: Unfolded
 # num_atoms is the no. of folded atoms
 import itertools
-import time, sys
 import random
-# for timing calculations
-
-# general purpose imports
+import time, sys, math
 import pandas as pd
 from itertools import product
-import math
+
 import numpy as np
 from biotite.structure import sasa
 import biotite.structure.io as strucio
-import infoStable
-from numba import jit, njit
-
-# multiprocessing library
 from multiprocessing import Pool
 
 import pdbIO, SFR
@@ -32,13 +25,11 @@ TsPolar = 335.15
 TsApolar = 385.15
 dSbb_length_corr = -0.12
 exposed_criteria = 0.1
-W_Sconf = 1.0 # might be an user input later
+W_Sconf = 1.0  # might be an user input later
 Current_Temp = 298.15
 ASA_exposed_amide = 7.5
-'''
-MONTE-CARLO PARAMETERS INITIALIZATION
-'''
 Def_Nprob = 75
+RT_Inverse = (1.0 / (1.9872 * Current_Temp))
 '''
 Radius of atoms table
 '''
@@ -310,20 +301,36 @@ def calc_stat_weight(folded_atoms, partitionId, partitionStates, partitionScheme
 
     return dG25, Sconf, delASA_ap, delASA_pol
 
-
 def task(args):
-    partitionId, partitionSchemes, partitionStates, partition, df, stack_from_pdb, OTnum = args
+
+    partitionSchemes, partitionStates, df, stack_from_pdb, OTnum, factor = args
+
+    partitionId = np.random.randint(1, len(partitionSchemes) + 1)
+    partition = np.random.randint(0, len(partitionStates[partitionId]))
+
+
     ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(
         partitionId, partitionSchemes, df, OTnum)
-    x = load_atoms_range(partitionId, partitionSchemes, partitionStates, partition, df)
-    y = calc_stat_weight(x[3], partitionId, partitionStates, partitionSchemes, partition, ASA_U_Apolar_unit,
+    state, num_atoms, num_residues, folded_atoms = load_atoms_range(partitionId, partitionSchemes, partitionStates, partition, df)
+    dG25, Sconf, delASA_ap, delASA_pol = calc_stat_weight(folded_atoms, partitionId, partitionStates, partitionSchemes, partition, ASA_U_Apolar_unit,
                         ASA_U_Polar_unit, ASA_N_Apolar, ASA_N_Polar, Fraction_exposed_Native, df, stack_from_pdb)
-    Fraction_folded = partitionStates[partitionId][partition].count(0) / len(partitionStates[partitionId][partition])
-    stateFlag = ""
-    for f in partitionStates[partitionId][partition]:
-        stateFlag += str(f)
-    return partitionId, partition, Fraction_folded, y[0], y[1], y[2], stateFlag
+    dG = dG25
+    if (dG < 0.0):
+        dG=0.0
+    dG = dG * factor
+    selection = math.exp(-dG * RT_Inverse)
+    selRand = random.random()
 
+    if (selection > selRand):
+        print("Success!!")
+        Fraction_folded = partitionStates[partitionId][partition].count(0) / len(partitionStates[partitionId][partition])
+        stateFlag = ""
+        for f in partitionStates[partitionId][partition]:
+            stateFlag += str(f)
+        print(partitionId, partition, Fraction_folded, Sconf, delASA_ap, delASA_pol, stateFlag)
+        return partitionId, partition, Fraction_folded, Sconf, delASA_ap, delASA_pol, stateFlag
+    else:
+        task([partitionSchemes, partitionStates, df, stack_from_pdb, OTnum, factor])
 
 
 if __name__ == '__main__':
@@ -336,13 +343,15 @@ if __name__ == '__main__':
 
     # print(type(df.at[1, 'ResNum']))
 
-    pdbID = input("Enter pdb id of protein: ")
-    window_size = int(input("Enter window size: "))
-    Minimum_Window_Size = int(input("Enter minimum window size: "))
+    #pdbID = input("Enter pdb id of protein: ")
+    #window_size = int(input("Enter window size: "))
+    #Minimum_Window_Size = int(input("Enter minimum window size: "))
+
+    # pdbID = str(sys.argv[1])
+    # window_size = int(sys.argv[2])
+    # Minimum_Window_Size = int(sys.argv[3])
 
     seq_length, OTnum, pdb_lst, df, stack_from_pdb = pdbIO.readPDB(pdbID)
-
-
 
     # print(df.index[df['ResNum'] == 56].tolist()[0])
 
@@ -352,20 +361,27 @@ if __name__ == '__main__':
 
     partitionStates = state_generator(partitionSchemes)
 
-    RT_Inverse = (1.0 / (1.9872 * Current_Temp))
-
     # TODO: Insert OTnum from readPDBfile
+
     output = []
 
-    # dealing with completely unfolded states
+    args = []  # list of all possible arguement combination
+    '''
+    for partitionId, partition in partitionStates.items():
+        for i in range(len(partition)):
+            args.append((partitionSchemes, partitionStates, df, stack_from_pdb, OTnum))
+    '''
     partitionId = len(partitionSchemes)
     partitionNum = len(partitionStates[partitionId]) - 1
 
-
-
-    ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(partitionId, partitionSchemes, df, OTnum)
-    state, num_atoms, num_residues, folded_atoms = load_atoms_range(partitionId, partitionSchemes, partitionStates, partitionNum, df)
-    dG25, Sconf, delASA_ap, delASA_pol = calc_stat_weight(folded_atoms, partitionId, partitionStates, partitionSchemes, partitionNum, ASA_U_Apolar_unit, ASA_U_Polar_unit, ASA_N_Apolar, ASA_N_Polar, Fraction_exposed_Native, df, stack_from_pdb)
+    ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(
+        partitionId, partitionSchemes, df, OTnum)
+    state, num_atoms, num_residues, folded_atoms = load_atoms_range(partitionId, partitionSchemes, partitionStates,
+                                                                    partitionNum, df)
+    dG25, Sconf, delASA_ap, delASA_pol = calc_stat_weight(folded_atoms, partitionId, partitionStates, partitionSchemes,
+                                                          partitionNum, ASA_U_Apolar_unit, ASA_U_Polar_unit,
+                                                          ASA_N_Apolar, ASA_N_Polar, Fraction_exposed_Native, df,
+                                                          stack_from_pdb)
 
 
     print("dG25 for fully unfolded state = ", dG25)
@@ -373,36 +389,69 @@ if __name__ == '__main__':
     prob = 0.01 * Nprob
     factor = -math.log(prob) / (dG25 * RT_Inverse)
     if (dG25 < 5000.0):
-        factor=-math.log(prob) / (5000.0 * RT_Inverse)
+        factor = -math.log(prob) / (5000.0 * RT_Inverse)
     print("factor = ", factor)
 
+    for i in range(60000):
+        args.append((partitionSchemes, partitionStates, df, stack_from_pdb, OTnum, factor))
 
-    partitionId = random.randint(1, len(partitionSchemes))
-    partitionNum = random.randint(1, len(partitionStates[partitionId]))
-
-
-    ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(partitionId, partitionSchemes, df, OTnum)
-    state, num_atoms, num_residues, folded_atoms = load_atoms_range(partitionId, partitionSchemes, partitionStates, partitionNum, df)
-    dG25, Sconf, delASA_ap, delASA_pol = calc_stat_weight(folded_atoms, partitionId, partitionStates, partitionSchemes, partitionNum, ASA_U_Apolar_unit, ASA_U_Polar_unit, ASA_N_Apolar, ASA_N_Polar, Fraction_exposed_Native, df, stack_from_pdb)
+    start_time = time.time()
+    with Pool(5) as pool:
+        result = pool.map(task, args)
 
 
 
+    tmpStr = []
+    for r in result:
+        if r != None:
+            tmpStr.append(
+                str(r[0]) + ' ' + str(r[1] + 1) + ' ' + str(r[1] + 1) + ' ' + str(r[2]) + ' ' + str(r[3]) + ' ' + str(
+                    r[4]) + ' ' + str(r[5]) + ' ' + str(r[6]) + '\n')
+    output = "".join(tmpStr)
 
-    dG = dG25
-    if (dG < 0.0):
-        dG=0.0
-    dG = dG * factor
-    selection = math.exp(-dG * RT_Inverse)
-    selRand = random.random()
+    text_file = open(pdbID + ".pdb." + str(window_size) + "." + str(Minimum_Window_Size), "wt")
+    n = text_file.write(output)
+    text_file.close()
 
+    print("\n--- %s seconds---" % (time.time() - start_time))
 
+    Partition_Function25 = 1.0
 
+    text_file = open(pdbID + ".pdb." + str(window_size) + "." + str(Minimum_Window_Size), 'r')
+    ensemble = text_file.readlines()
+    text_file.close()
 
+    ln_kf = SFR.Residue_Probabilities(ensemble, seq_length, partitionSchemes, partitionStates, Partition_Function25)
+
+    corexOut = []
+    for i in range(len(ln_kf)):
+        corexOut.append(str(i + 1) + " " + str(ln_kf[i]) + "\n")
+    output = "".join(corexOut)
+
+    file = open(pdbID + ".pdb." + str(window_size) + "." + str(Minimum_Window_Size) + ".ThermoDescriptMC", 'wt')
+    n = file.write(output)
+    file.close()
+
+    '''
+
+    for partitionId, partition in partitionStates.items():
+        for i in range(len(partition)):
+            ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(partitionId, partitionSchemes, df, OTnum)
+            x = load_atoms_range(partitionId, partitionSchemes, partitionStates, i, df)
+            y = calc_ASA_dSconf(x[3], partitionId,partitionStates, partitionSchemes, i, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native, df)
+            Fraction_folded = partitionStates[partitionId][i].count(1)/len(partitionStates[partitionId][i])
 
 
     ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, OTnum)
     x = load_atoms_range(1, partitionSchemes, partitionStates, 20, df)
-    y = calc_stat_weight(x[3], 1 ,partitionStates, partitionSchemes, 20, ASA_U_Apolar_unit, ASA_U_Polar_unit,ASA_N_Apolar, ASA_N_Polar,Fraction_exposed_Native, df, stack_from_pdb)
+    y = calc_ASA_dSconf(x[3], 1 ,partitionStates, partitionSchemes, 20, ASA_U_Apolar_unit, ASA_U_Polar_unit,ASA_N_Apolar, ASA_N_Polar,Fraction_exposed_Native, df)
 
     print(y)
+    '''
 
+    '''
+    ASA_N_Apolar, ASA_N_Polar, ASA_N_Apolar_unit, ASA_N_Polar_unit, ASA_U_Apolar_unit, ASA_U_Polar_unit, Fraction_exposed_Native = Native_State(1, partitionSchemes, df, OTnum)
+    x = load_atoms_range(1, partitionSchemes, partitionStates, 20, df)
+    y = calc_ASA_dSconf(x[3], 1 ,partitionStates, partitionSchemes, 20, ASA_U_Apolar_unit, ASA_U_Polar_unit,ASA_N_Apolar, ASA_N_Polar,Fraction_exposed_Native, df, stack_from_pdb)
+
+    '''
