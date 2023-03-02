@@ -14,7 +14,7 @@ parser = PDBParser()
 
 
 # my_pdb_structure = parser.get_structure('test', 'test.pdb')
-my_pdb_structure = parser.get_structure('test', '2qle_stripped.pdb')
+my_pdb_structure = parser.get_structure('test', '1a17_stripped.pdb')
 
 print(my_pdb_structure)
 
@@ -45,4 +45,4 @@ for model in my_pdb_structure:
 
 io.set_structure(my_pdb_structure)
 # io.save('renumbered.pdb')
-io.save('2qle.pdb',  preserve_atom_numbering=True)
+io.save('1a17.pdb',  preserve_atom_numbering=True)
